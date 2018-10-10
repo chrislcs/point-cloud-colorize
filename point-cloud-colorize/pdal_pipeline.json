@@ -1,0 +1,20 @@
+{
+  "pipeline":[
+    {
+      "type":"readers.las",
+      "filename": "file-input.las"
+    },
+    {
+      "type": "filters.python",
+      "script": "pdal_colorize.py",
+      "function": "las_colorize",
+      "module": "anything",
+      "pdalargs": "pdal-args"
+    },
+    {
+      "type":"writers.las",
+      "a_srs": "EPSG:28992",
+      "filename":"file-output.las"
+    }
+  ]
+}

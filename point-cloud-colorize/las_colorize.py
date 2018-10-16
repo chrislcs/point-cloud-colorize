@@ -35,7 +35,7 @@ def run_pdal(path, input_path, output_path, las_srs, wms_url,
 def process_files(input_path, output_path, las_srs,
                   wms_url, wms_layer, wms_srs,
                   wms_version, wms_format, wms_ppm,
-                  wms_max_image_size):
+                  wms_max_image_size, verbose=False):
     """
     Run the pdal pipeline using the given arguments.
 
@@ -61,9 +61,13 @@ def process_files(input_path, output_path, las_srs,
                     basename, ext = os.path.splitext(output_path)
                     out = '{}_{}{}'.format(basename, i, ext)
 
+                if verbose:
+                    print('Colorizing {} ..'.format(las))
                 run_pdal(path, las, out, las_srs, wms_url, wms_layer, wms_srs,
                          wms_version, wms_format, wms_ppm,  wms_max_image_size)
     else:
+        if verbose:
+            print('Colorizing {} ..'.format(input_path))
         run_pdal(path, input_path, output_path, las_srs, wms_url, wms_layer,
                  wms_srs, wms_version, wms_format, wms_ppm, wms_max_image_size)
 
@@ -114,6 +118,8 @@ def argument_parser():
                         help='The maximum size in pixels of the largest side of the requested image. (int, default: sys.maxsize)',
                         required=False,
                         default=sys.maxsize)
+    parser.add_argument('-V', '--verbose', default=False, action="store_true",
+                        help='Set verbose.')
     args = parser.parse_args()
     return args
 
@@ -123,7 +129,8 @@ def main():
     process_files(args.input, args.output, args.las_srs,
                   args.wms_url, args.wms_layer, args.wms_srs,
                   args.wms_version, args.wms_format,
-                  args.wms_ppm, args.wms_max_image_size)
+                  args.wms_ppm, args.wms_max_image_size,
+                  args.verbose)
 
 
 if __name__ == '__main__':

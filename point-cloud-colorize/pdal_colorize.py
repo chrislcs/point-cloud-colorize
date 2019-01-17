@@ -33,7 +33,7 @@ def request_image(bbox, size, wms_url, wms_layer, wms_srs,
             else:
                 raise e
 
-    img = mpimg.imread(BytesIO(wms_img.read()))
+    img = mpimg.imread(BytesIO(wms_img.read()), 0)
 
     return img
 

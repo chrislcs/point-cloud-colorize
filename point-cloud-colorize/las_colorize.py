@@ -37,6 +37,34 @@ PDAL_PIPELINE = """{{
 def run_pdal(input_path, output_path, las_srs, wms_url,
              wms_layer, wms_srs, wms_version, wms_format,
              wms_pixel_size, wms_max_image_size):
+    """
+    Run the pdal pipeline using the given arguments.
+
+    Parameters
+    ----------
+    input_path : str
+        The path to the input LAS/LAZ file or directory containing LAS/LAZ
+        files.
+    output_path : str
+        The path to the output LAS/LAZ file or directory.
+    las_srs : str
+        The spatial reference system of the LAS data.
+    wms_url : str
+        The url of the WMS service to use.
+    wms_layer : str
+        The layer of the WMS service to use.
+    wms_srs : str
+        The spatial reference system of the WMS data to request.
+    wms_version : str
+        The image format of the WMS data to request.
+    wms_format : str
+        The version number of the WMS service.
+    wms_pixel_size : float
+        The approximate desired pixel size of the requested image.
+    wms_max_image_size : int
+        The maximum size (in pixels) of the largest side of the requested
+        image.
+    """
     pdalargs = {'wms_url': wms_url,
                 'wms_layer': wms_layer,
                 'wms_srs': wms_srs,
@@ -63,14 +91,34 @@ def process_files(input_path, output_path, las_srs,
                   wms_version, wms_format, wms_pixel_size,
                   wms_max_image_size, verbose=False):
     """
-    Run the pdal pipeline using the given arguments.
+    Run the pdal pipeline for the input files.
 
     Parameters
     ----------
-    input : str
-        The path to the input LAS/LAZ file.
-    output : str
-        The path to the output LAS/LAZ file.
+    input_path : str
+        The path to the input LAS/LAZ file or directory containing LAS/LAZ
+        files.
+    output_path : str
+        The path to the output LAS/LAZ file or directory.
+    las_srs : str
+        The spatial reference system of the LAS data.
+    wms_url : str
+        The url of the WMS service to use.
+    wms_layer : str
+        The layer of the WMS service to use.
+    wms_srs : str
+        The spatial reference system of the WMS data to request.
+    wms_version : str
+        The image format of the WMS data to request.
+    wms_format : str
+        The version number of the WMS service.
+    wms_pixel_size : float
+        The approximate desired pixel size of the requested image.
+    wms_max_image_size : int
+        The maximum size (in pixels) of the largest side of the requested
+        image.
+    verbose : bool
+        Set verbose.
     """
     input_path = Path(input_path)
     output_path = Path(output_path)
@@ -122,38 +170,47 @@ def argument_parser():
     """
     Define and return the arguments.
     """
-    description = ("Colorize a las or laz file with a WMS service. "
-                   "By default uses PDOK aerial photography.")
+    description = ('Colorize a las or laz file with a WMS service. '
+                   'By default uses PDOK aerial photography.')
     parser = argparse.ArgumentParser(description=description)
     required_named = parser.add_argument_group('required named arguments')
     required_named.add_argument('-i', '--input',
                                 help='The input LAS/LAZ file or folder.',
                                 required=True)
     required_named.add_argument('-o', '--output',
-                                help='The output colorized LAS/LAZ file or folder.',
+                                help=('The output colorized LAS/LAZ '
+                                      'file or folder.'),
                                 required=True)
     parser.add_argument('-s', '--las_srs',
-                        help='The spatial reference system of the LAS data. (str, default: EPSG:28992)',
+                        help=('The spatial reference system of the LAS data. '
+                              '(str, default: EPSG:28992)'),
                         required=False,
                         default='EPSG:28992')
     parser.add_argument('-w', '--wms_url',
-                        help='The url of the WMS service to use. (str, default: https://geodata.nationaalgeoregister.nl/luchtfoto/rgb/wms?)',
+                        help=('The url of the WMS service to use. '
+                              '(str, default: https://geodata. '
+                              'nationaalgeoregister.nl/luchtfoto/rgb/wms?)'),
                         required=False,
-                        default='https://geodata.nationaalgeoregister.nl/luchtfoto/rgb/wms?')
+                        default=('https://geodata.nationaalgeoregister.nl'
+                                 '/luchtfoto/rgb/wms?'))
     parser.add_argument('-l', '--wms_layer',
-                        help='The layer of the WMS service to use. (str, default: Actueel_ortho25)',
+                        help=('The layer of the WMS service to use. '
+                              '(str, default: Actueel_ortho25)'),
                         required=False,
                         default='Actueel_ortho25')
     parser.add_argument('-r', '--wms_srs',
-                        help='The spatial reference system of the WMS data to request. (str, default: EPSG:28992)',
+                        help=('The spatial reference system of the WMS data '
+                              'to request. (str, default: EPSG:28992)'),
                         required=False,
                         default='EPSG:28992')
     parser.add_argument('-f', '--wms_format',
-                        help='The image format of the WMS data to request. (str, default: image/png)',
+                        help=('The image format of the WMS data to request. '
+                              '(str, default: image/png)'),
                         required=False,
                         default='image/png')
     parser.add_argument('-v', '--wms_version',
-                        help='The version number of the WMS service. (str, default: 1.3.0)',
+                        help=('The version number of the WMS service. '
+                              '(str, default: 1.3.0)'),
                         required=False,
                         default='1.3.0')
     parser.add_argument('-p', '--wms_pixel_size',
@@ -162,9 +219,11 @@ def argument_parser():
                         required=False,
                         default=0.25)
     parser.add_argument('-m', '--wms_max_image_size',
-                        help='The maximum size in pixels of the largest side of the requested image. (int, default: sys.maxsize)',
+                        help=('The maximum size (in pixels) of the largest '
+                              'side of the requested image. '
+                              '(int, default: 1000)'),
                         required=False,
-                        default=sys.maxsize)
+                        default=1000)
     parser.add_argument('-V', '--verbose', default=False, action="store_true",
                         help='Set verbose.')
     args = parser.parse_args()
@@ -172,6 +231,9 @@ def argument_parser():
 
 
 def main():
+    """
+    Run the application.
+    """
     args = argument_parser()
     process_files(args.input, args.output, args.las_srs,
                   args.wms_url, args.wms_layer, args.wms_srs,

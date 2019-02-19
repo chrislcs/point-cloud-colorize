@@ -16,7 +16,34 @@ from requests.exceptions import ReadTimeout
 
 def request_image(bbox, size, wms_url, wms_layer, wms_srs,
                   wms_version, wms_format, retries):
+    """
+    Request an image from a WMS.
 
+    Parameters
+    ----------
+    bbox : list of float
+        The coordinates of the bounding box. [xmin, ymin, xmax, ymax]
+    size : list of int
+        The size of the image to be requested in pixels. [x, y]
+    wms_url : str
+        The url of the WMS service to use.
+    wms_layer : str
+        The layer of the WMS service to use.
+    wms_srs : str
+        The spatial reference system of the WMS data to request.
+    wms_version : str
+        The image format of the WMS data to request.
+    wms_format : str
+        The version number of the WMS service.
+    retries : int
+        Amount of times to retry retrieving an image from the WMS if it
+        fails.
+
+    Returns
+    -------
+    img : (MxNx3) array
+        The RGB values of each pixel
+    """
     for i in range(retries):
         try:
             wms = WebMapService(wms_url, version=wms_version)
@@ -39,6 +66,22 @@ def request_image(bbox, size, wms_url, wms_layer, wms_srs,
 
 
 def image_size(bbox, pixel_size=0.25):
+    """
+    Compute the size of the image to be requested in pixels based on the
+    bounding box and the pixel size.
+
+    Parameters
+    ----------
+    bbox : list of float
+        The coordinates of the bounding box. [xmin, ymin, xmax, ymax]
+    pixel_size : float
+        The desired pixel size of the requested image.
+
+    Returns
+    -------
+    img_size : tuple of int
+        The size of the image to be requested in pixels. (x, y)
+    """
     dif_x = bbox[2] - bbox[0]
     dif_y = bbox[3] - bbox[1]
     aspect_ratio = dif_x / dif_y
@@ -51,20 +94,35 @@ def image_size(bbox, pixel_size=0.25):
 def retrieve_image(bbox, wms_url, wms_layer, wms_srs, wms_version,
                    wms_format, pixel_size, max_image_size, retries=10):
     """
-    Download an orthophoto from the PDOK WMS service.
+    Retrieve the imagery from a WMS service for the given bounding box.
 
     Parameters
     ----------
-    bbox
+    bbox : list of float
+        The coordinates of the bounding box. [xmin, ymin, xmax, ymax]
+    wms_url : str
+        The url of the WMS service to use.
+    wms_layer : str
+        The layer of the WMS service to use.
+    wms_srs : str
+        The spatial reference system of the WMS data to request.
+    wms_version : str
+        The image format of the WMS data to request.
+    wms_format : str
+        The version number of the WMS service.
+    pixel_size : float
+        The desired pixel size of the requested image.
+    max_image_size : int
+        The maximum size (in pixels) of the largest side of the requested
+        image.
+    retries : int
+        Amount of times to retry retrieving an image from the WMS if it
+        fails.
 
     Returns
     -------
-    out_filename : string
-        The path to the output image file.
-
-    Output
-    ------
-    PNG image
+    img : (MxNx3) array
+        The RGB values of each pixel
     """
     [xmin, ymin, xmax, ymax] = bbox
 
@@ -106,12 +164,13 @@ def retrieve_image(bbox, wms_url, wms_layer, wms_srs, wms_version,
 
 def las_colorize(ins, outs):
     """
-    Adds RGB information to a LAS file by downloading an orthophoto from
-    the PDOK WMS service.
+    PDAL python function. Adds RGB information to a LAS file by downloading
+    an orthophoto from a WMS service.
 
     Parameters
     ----------
-
+    ins : PDAL input
+    outs : PDAL output
     """
     X = ins['X']
     Y = ins['Y']

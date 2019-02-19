@@ -10,6 +10,7 @@ import json
 import math
 import numpy as np
 import matplotlib.image as mpimg
+import pyproj
 from owslib.wms import WebMapService
 from requests.exceptions import ReadTimeout
 
@@ -175,7 +176,15 @@ def las_colorize(ins, outs):
     X = ins['X']
     Y = ins['Y']
 
-    [xmin, ymin, xmax, ymax] = bbox = [min(X), min(Y), max(X), max(Y)]
+    [xmin, ymin, xmax, ymax] = [min(X), min(Y), max(X), max(Y)]
+
+    if pdalargs['las_srs'] != pdalargs['wms_srs']:
+        p1 = pyproj.Proj(init=pdalargs['las_srs'])
+        p2 = pyproj.Proj(init=pdalargs['wms_srs'])
+        [xmin, ymin] = pyproj.transform(p1, p2, xmin, ymin)
+        [xmax, ymax] = pyproj.transform(p1, p2, xmax, ymax)
+
+    bbox = [xmin, ymin, xmax, ymax]
 
     img = retrieve_image(bbox, pdalargs['wms_url'], pdalargs['wms_layer'],
                          pdalargs['wms_srs'], pdalargs['wms_version'],

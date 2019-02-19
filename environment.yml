@@ -11,3 +11,4 @@ dependencies:
   - owslib>=0.17.0
   - pdal>=1.8.0
   - python-pdal>=2.1.8
+  - pyproj>=1.9.6

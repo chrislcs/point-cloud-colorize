@@ -38,18 +38,18 @@ def request_image(bbox, size, wms_url, wms_layer, wms_srs,
     return img
 
 
-def image_size(bbox, ppm=4):
+def image_size(bbox, pixel_size=0.25):
     dif_x = bbox[2] - bbox[0]
     dif_y = bbox[3] - bbox[1]
     aspect_ratio = dif_x / dif_y
-    resolution = int(dif_x * ppm)
+    resolution = int(dif_x * (1/pixel_size))
     img_size = (resolution, int(resolution / aspect_ratio))
 
     return img_size
 
 
-def retrieve_image(bbox, wms_url, wms_layer, wms_srs,
-                   wms_version, wms_format, ppm, max_image_size):
+def retrieve_image(bbox, wms_url, wms_layer, wms_srs, wms_version,
+                   wms_format, pixel_size, max_image_size, retries=10):
     """
     Download an orthophoto from the PDOK WMS service.
 
@@ -66,16 +66,14 @@ def retrieve_image(bbox, wms_url, wms_layer, wms_srs,
     ------
     PNG image
     """
-    retries = 10
-
     [xmin, ymin, xmax, ymax] = bbox
 
     x_range = xmax - xmin
     y_range = ymax - ymin
     longest_side = max([x_range, y_range])
 
-    if (longest_side * ppm > max_image_size):
-        length = max_image_size / ppm
+    if (longest_side * (1/pixel_size) > max_image_size):
+        length = max_image_size / (1/pixel_size)
         length_pixels = max_image_size
 
         rows = int(math.ceil((ymax-ymin)/length))
@@ -96,8 +94,8 @@ def retrieve_image(bbox, wms_url, wms_layer, wms_srs,
                      length_pixels):(length_pixels*rows)-row*length_pixels,
                     col*length_pixels:(col+1)*length_pixels] = img_part
 
-        img = img[(length_pixels*rows)-int(y_range*ppm):,
-                  :int(round(x_range*ppm))]
+        img = img[(length_pixels*rows)-int(y_range*(1/pixel_size)):,
+                  :int(round(x_range*(1/pixel_size)))]
     else:
         size = image_size(bbox)
         img = request_image(bbox, size, wms_url, wms_layer, wms_srs,
@@ -115,18 +113,15 @@ def las_colorize(ins, outs):
     ----------
 
     """
-    wms = pdalargs
-    if isinstance(pdalargs, str):
-        wms = json.loads(pdalargs)
     X = ins['X']
     Y = ins['Y']
 
     [xmin, ymin, xmax, ymax] = bbox = [min(X), min(Y), max(X), max(Y)]
 
-    img = retrieve_image(bbox, wms['wms_url'], wms['wms_layer'],
-                         wms['wms_srs'], wms['wms_version'],
-                         wms['wms_format'], int(wms['wms_ppm']),
-                         int(wms['wms_max_image_size']))
+    img = retrieve_image(bbox, pdalargs['wms_url'], pdalargs['wms_layer'],
+                         pdalargs['wms_srs'], pdalargs['wms_version'],
+                         pdalargs['wms_format'], float(pdalargs['wms_pixel_size']),
+                         int(pdalargs['wms_max_image_size']))
 
     img_size = img.shape[:2]
 

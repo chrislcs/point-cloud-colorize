@@ -5,36 +5,62 @@ Python3
 @author: Chris Lucas
 """
 
-import sys
-import os
 import argparse
-import subprocess
 import json
-import math
+from pathlib import Path
+
+import pdal
 
 
-def run_pdal(path, input_path, output_path, las_srs, wms_url,
-             wms_layer, wms_srs, wms_version, wms_format, wms_ppm,
-             wms_max_image_size):
-    subprocess.call(['pdal', 'pipeline',
-                    '{}/pdal_pipeline.json'.format(path),
-                    '--readers.las.filename={}'.format(input_path),
-                    '--filters.python.script={}/pdal_colorize.py'.format(path),
-                    ('--filters.python.pdalargs="{' +
-                    '\\\"wms_url\\\": \\\"{}\\\",'.format(wms_url) +
-                    '\\\"wms_layer\\\": \\\"{}\\\",'.format(wms_layer) +
-                    '\\\"wms_srs\\\": \\\"{}\\\",'.format(wms_srs) +
-                    '\\\"wms_version\\\": \\\"{}\\\",'.format(wms_version) +
-                    '\\\"wms_format\\\": \\\"{}\\\",'.format(wms_format) +
-                    '\\\"wms_ppm\\\": \\\"{}\\\",'.format(wms_ppm) +
-                    '\\\"wms_max_image_size\\\": \\\"{}\\\"}}"'.format(wms_max_image_size)),
-                    '--writers.las.filename={}'.format(output_path),
-                    '--writers.las.a_srs={}'.format(las_srs)])
+PDAL_PIPELINE = """{{
+  "pipeline":[
+    {{
+      "type": "readers.las",
+      "filename": "{input_file}"
+    }},
+    {{
+      "type": "filters.python",
+      "script": "{directory}/pdal_colorize.py",
+      "function": "las_colorize",
+      "module": "anything",
+      "pdalargs": "{pdalargs}"
+    }},
+    {{
+      "type": "writers.las",
+      "a_srs": "{srs}",
+      "filename": "{output_file}"
+    }}
+  ]
+}}"""
+
+
+def run_pdal(input_path, output_path, las_srs, wms_url,
+             wms_layer, wms_srs, wms_version, wms_format,
+             wms_pixel_size, wms_max_image_size):
+    pdalargs = {'wms_url': wms_url,
+                'wms_layer': wms_layer,
+                'wms_srs': wms_srs,
+                'wms_version': wms_version,
+                'wms_format': wms_format,
+                'wms_pixel_size': wms_pixel_size,
+                'wms_max_image_size': wms_max_image_size,
+                'las_srs': las_srs}
+    pdalargs_str = json.dumps(pdalargs).replace('"', '\\"')
+
+    path = Path(__file__)
+    pipeline_json = PDAL_PIPELINE.format(input_file=input_path.as_posix(),
+                                         output_file=output_path.as_posix(),
+                                         srs=las_srs,
+                                         pdalargs=pdalargs_str,
+                                         directory=path.parent.as_posix())
+    pipeline = pdal.Pipeline(pipeline_json)
+    pipeline.validate()
+    pipeline.execute()
 
 
 def process_files(input_path, output_path, las_srs,
                   wms_url, wms_layer, wms_srs,
-                  wms_version, wms_format, wms_ppm,
+                  wms_version, wms_format, wms_pixel_size,
                   wms_max_image_size, verbose=False):
     """
     Run the pdal pipeline using the given arguments.
@@ -46,30 +72,50 @@ def process_files(input_path, output_path, las_srs,
     output : str
         The path to the output LAS/LAZ file.
     """
-    path = os.path.dirname(os.path.realpath(__file__))
+    input_path = Path(input_path)
+    output_path = Path(output_path)
 
-    if os.path.isdir(input_path):
-        for i, f in enumerate(os.listdir(input_path)):
-            if f.endswith(".las") or f.endswith(".laz"):
-                las = os.path.join(input_path, f).replace('\\', '/')
+    if input_path.is_dir():
+        for f in input_path.iterdir():
+            if f.suffix == '.las' or f.suffix == '.laz':
 
-                if os.path.isdir(output_path):
-                    output_path = output_path + '/' if output_path[-1] != '/' else output_path
-                    basename, ext = os.path.splitext(f)
-                    out = '{}{}_color{}'.format(output_path, basename, ext)
+                if output_path.is_dir():
+                    out = output_path / '{}_color{}'.format(f.stem, f.suffix)
                 else:
-                    basename, ext = os.path.splitext(output_path)
-                    out = '{}_{}{}'.format(basename, i, ext)
+                    raise ValueError('Output path should be a directory if '
+                                     'the input path is a directory.')
 
                 if verbose:
-                    print('Colorizing {} ..'.format(las))
-                run_pdal(path, las, out, las_srs, wms_url, wms_layer, wms_srs,
-                         wms_version, wms_format, wms_ppm,  wms_max_image_size)
+                    print('Colorizing {} ..'.format(f))
+                    print('Saving at {}.'.format(out))
+
+                run_pdal(f, out, las_srs, wms_url, wms_layer, wms_srs,
+                         wms_version, wms_format, wms_pixel_size,
+                         wms_max_image_size)
     else:
         if verbose:
             print('Colorizing {} ..'.format(input_path))
-        run_pdal(path, input_path, output_path, las_srs, wms_url, wms_layer,
-                 wms_srs, wms_version, wms_format, wms_ppm, wms_max_image_size)
+
+        if output_path.suffix == '.las' or output_path.suffix == '.laz':
+            if verbose:
+                print('Saving at {}.'.format(output_path))
+
+            run_pdal(input_path, output_path, las_srs, wms_url,
+                     wms_layer, wms_srs, wms_version, wms_format,
+                     wms_pixel_size, wms_max_image_size)
+        elif output_path.is_dir():
+            out = output_path / '{}_color{}'.format(input_path.stem,
+                                                    input_path.suffix)
+
+            if verbose:
+                print('Saving at {}.'.format(out))
+
+            run_pdal(input_path, out, las_srs, wms_url,
+                     wms_layer, wms_srs, wms_version, wms_format,
+                     wms_pixel_size, wms_max_image_size)
+        else:
+            raise ValueError('Specified output path not a LAS/LAZ file or '
+                             'existing directory.')
 
 
 def argument_parser():
@@ -110,10 +156,11 @@ def argument_parser():
                         help='The version number of the WMS service. (str, default: 1.3.0)',
                         required=False,
                         default='1.3.0')
-    parser.add_argument('-p', '--wms_ppm',
-                        help='The approximate desired pixels per meter of the requested image. (int, default: 4)',
+    parser.add_argument('-p', '--wms_pixel_size',
+                        help=('The approximate desired pixel size of the '
+                              'requested image. (float, default: 0.25)'),
                         required=False,
-                        default=4)
+                        default=0.25)
     parser.add_argument('-m', '--wms_max_image_size',
                         help='The maximum size in pixels of the largest side of the requested image. (int, default: sys.maxsize)',
                         required=False,
@@ -129,7 +176,7 @@ def main():
     process_files(args.input, args.output, args.las_srs,
                   args.wms_url, args.wms_layer, args.wms_srs,
                   args.wms_version, args.wms_format,
-                  args.wms_ppm, args.wms_max_image_size,
+                  args.wms_pixel_size, args.wms_max_image_size,
                   args.verbose)
 
 

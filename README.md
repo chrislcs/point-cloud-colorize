@@ -4,52 +4,26 @@ Colors a point cloud using a WMS.
 
 This python script adds color to a LAS/LAZ file using a WMS service.
 
-(Default: PDOK 2016 aerial imagery).
+(Default: PDOK aerial imagery)
 
 ## Installation
 
-Install python3 (with numpy, matplotlib, requests and owslib libraries) and [PDAL](https://www.pdal.io/) (with LASzip).
+### Conda
 
-### Windows
-
-The easiest way to install these packages on windows is with [OSGeo4W](https://trac.osgeo.org/osgeo4w/) or [conda](https://conda.io/).
-
-#### OSGeo4W
-
-Download the OSGeo4W installer. Run and choose `advanced install` and select at least the following packages: `pdal`, `laszip`, `python3-core`, `python3-numpy`, `python3-matplotlib`, `python3-requests`, `python3-owslib`.
-
-#### Conda
-
-Download and install [Anaconda](https://www.anaconda.com/download/) or [Miniconda](https://conda.io/miniconda.html). Open the `Anaconda Prompt`. Run the following commands:
+Download and install [Anaconda](https://www.anaconda.com/download/) or [Miniconda](https://conda.io/miniconda.html). Open the `Anaconda Prompt`. Run the following command in the directory of this repository:
 
 ```
-conda install requests
-conda install numpy
-conda install matplotlib
-conda install owslib
-conda install -c conda-forge pdal
-conda install -c conda-forge python-pdal
+conda env create -f environment.yml
 ```
 
 ## Usage
 
-### Windows
-
-#### OSGeo4W
-
-Open an OSGeo4W shell and run `py3_env.bat` located in the `bin` folder in your OSGeo4W installation folder. Run the following command:
-
-```
-python las_colorize.py -h
-```
-
-To see the help.
-
-#### Conda
+### Conda
 
 Open an Anaconda Prompt. Run the following command:
 
 ```
+conda activate point-cloud-colorize
 python las_colorize.py -h
 ```
 

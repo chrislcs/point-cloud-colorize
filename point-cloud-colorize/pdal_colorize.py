@@ -180,14 +180,17 @@ def las_colorize(ins, outs):
     if pdalargs['las_srs'] != pdalargs['wms_srs']:
         p1 = pyproj.Proj(init=pdalargs['las_srs'])
         p2 = pyproj.Proj(init=pdalargs['wms_srs'])
-        [xmin, ymin] = pyproj.transform(p1, p2, xmin, ymin)
-        [xmax, ymax] = pyproj.transform(p1, p2, xmax, ymax)
 
-    bbox = [xmin, ymin, xmax, ymax]
+        bbox = [0, 0, 0, 0]
+        bbox[:2] = pyproj.transform(p1, p2, xmin, ymin)
+        bbox[2:] = pyproj.transform(p1, p2, xmax, ymax)
+    else:
+        bbox = [xmin, ymin, xmax, ymax]
 
     img = retrieve_image(bbox, pdalargs['wms_url'], pdalargs['wms_layer'],
                          pdalargs['wms_srs'], pdalargs['wms_version'],
-                         pdalargs['wms_format'], float(pdalargs['wms_pixel_size']),
+                         pdalargs['wms_format'],
+                         float(pdalargs['wms_pixel_size']),
                          int(pdalargs['wms_max_image_size']))
 
     img_size = img.shape[:2]

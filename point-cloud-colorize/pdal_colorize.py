@@ -6,7 +6,6 @@ Python3
 """
 
 from io import BytesIO
-import json
 import math
 import numpy as np
 import matplotlib.image as mpimg

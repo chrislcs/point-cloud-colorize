@@ -4,3 +4,5 @@ debug/
 *.laz
 *.las
 .*sh
+.gitignore
+

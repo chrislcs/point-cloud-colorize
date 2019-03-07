@@ -1,3 +1,6 @@
 .vscode/
 .spyproject/
 debug/
+*.laz
+*.las
+.*sh

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Python3
-
 @author: Chris Lucas
 """
 
@@ -18,7 +17,6 @@ def request_image(bbox, size, wms_url, wms_layer, wms_srs,
                   wms_version, wms_format, retries):
     """
     Request an image from a WMS.
-
     Parameters
     ----------
     bbox : list of float
@@ -38,7 +36,6 @@ def request_image(bbox, size, wms_url, wms_layer, wms_srs,
     retries : int
         Amount of times to retry retrieving an image from the WMS if it
         fails.
-
     Returns
     -------
     img : (MxNx3) array
@@ -69,14 +66,12 @@ def image_size(bbox, pixel_size=0.25):
     """
     Compute the size of the image to be requested in pixels based on the
     bounding box and the pixel size.
-
     Parameters
     ----------
     bbox : list of float
         The coordinates of the bounding box. [xmin, ymin, xmax, ymax]
     pixel_size : float
         The desired pixel size of the requested image.
-
     Returns
     -------
     img_size : tuple of int
@@ -95,7 +90,6 @@ def retrieve_image(bbox, wms_url, wms_layer, wms_srs, wms_version,
                    wms_format, pixel_size, max_image_size, retries=10):
     """
     Retrieve the imagery from a WMS service for the given bounding box.
-
     Parameters
     ----------
     bbox : list of float
@@ -118,7 +112,6 @@ def retrieve_image(bbox, wms_url, wms_layer, wms_srs, wms_version,
     retries : int
         Amount of times to retry retrieving an image from the WMS if it
         fails.
-
     Returns
     -------
     img : (MxNx3) array
@@ -166,7 +159,6 @@ def las_colorize(ins, outs):
     """
     PDAL python function. Adds RGB information to a LAS file by downloading
     an orthophoto from a WMS service.
-
     Parameters
     ----------
     ins : PDAL input

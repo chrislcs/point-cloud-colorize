@@ -37,7 +37,7 @@ PDAL_PIPELINE = """{{
 
 def run_pdal(input_path, output_path, las_srs, wms_url,
              wms_layer, wms_srs, wms_version, wms_format,
-             wms_pixel_size, wms_max_image_size):
+             wms_pixel_size, wms_max_image_size, n_div):
     """
     Run the pdal pipeline using the given arguments.
 
@@ -119,7 +119,7 @@ def process_files_parallel(input, output, las_srs,
                             }},
                             {{
                               "type": "filters.divider",
-                              "count": "16"
+                              "count": "{n_div}"
                             }},
                             {{
                               "type": "writers.las",
@@ -324,10 +324,10 @@ def argument_parser():
                         required=False,
                         default=1000)
     parser.add_argument('-d', '--divide',
-                        default=5,
-                        action = "store_true",
-                        help='Divide the point cloud in a given number of '
-                             'smaller areas which are colored seperately')
+                        action="store_true",
+                        default=False,
+                        help='Divide the point cloud in smaller areas'
+                             'which are colored in parallel')
     parser.add_argument('-V', '--verbose',
                         default=False,
                         action="store_true",

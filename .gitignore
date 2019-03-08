@@ -4,4 +4,4 @@ debug/
 *.laz
 *.las
 *.sh
-/point-cloud-colorize/*
+point-cloud-colorize/*

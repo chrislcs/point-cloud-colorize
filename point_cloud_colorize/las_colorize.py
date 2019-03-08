@@ -96,8 +96,7 @@ def parallel_coloring(f, i, verbose, tmp_col_path, pdalargs, tmp_col = 'tmp_col_
              pdalargs['wms_pixel_size'],pdalargs['wms_max_image_size'])
 
     if verbose:
-        print(datetime.datetime.now().isoformat())
-        print(f'colored {i} parts of the las')
+        print(f'colored {i} parts of the las at {datetime.datetime.now()}')
 
 def process_files_parallel(input, output, las_srs,
                           wms_url, wms_layer, wms_srs,
@@ -111,17 +110,18 @@ def process_files_parallel(input, output, las_srs,
     :param verbose:
     :return:
     """
-    print('colorizing parts')
-    print(datetime.datetime.now().isoformat())
+    if verbose:
+        print(f'started colorizing parts at {datetime.datetime.now()}')
     output_path = Path(output)
+    if not output_path.is_dir():
+        raise ValueError('Output should be a directory')
+
     input_path = Path(input)
     tmp_div_path = Path(output_path.parent.joinpath('tmp_div'))
-    tmp_col_path = Path(output_path.parent.joinpath('tmp_col'))
 
-    for p in [tmp_div_path, tmp_col_path]:
-        if p.exists():
-            shutil.rmtree(p)
-        p.mkdir(parents=True, exist_ok=True)
+    if tmp_div_path.exists():
+        shutil.rmtree(tmp_div_path)
+    tmp_div_path.mkdir(parents=True, exist_ok=True)
 
     divide_pipeline = """{{
                           "pipeline":[
@@ -140,24 +140,6 @@ def process_files_parallel(input, output, las_srs,
                             }}
                           ]}}"""
 
-
-    merge_pipeline = """{{
-                        "pipeline":[
-                        {{
-                          "type": "readers.las",
-                          "filename": "{input_file}"
-                        }},
-                        {{
-                          "type":"filters.merge"
-                        }},
-                        {{
-                          "type":"writers.las",
-                          "a_srs":"{srs}",
-                          "filename":"{output_path}"
-                        }}
-                        ]}}"""
-
-
     # create pipeline for dividing the las
     div_pipeline_json = divide_pipeline.format(input_file=input_path.as_posix(),
                                                srs=las_srs,
@@ -167,8 +149,7 @@ def process_files_parallel(input, output, las_srs,
     pipeline.validate()
     pipeline.execute()
     if verbose:
-        print('las is divided')
-        print(datetime.datetime.now().isoformat())
+        print(f'las is divided at {datetime.datetime.now()}')
 
     pdalargs = {'wms_url': wms_url,
                 'wms_layer': wms_layer,
@@ -180,22 +161,14 @@ def process_files_parallel(input, output, las_srs,
                 'las_srs': las_srs}
 
     # for each of the created las-parts
-    print('start parallel processing')
-    print(datetime.datetime.now().isoformat())
-    Parallel(n_jobs=1)(delayed(parallel_coloring)(f, i, verbose, tmp_col_path, pdalargs) for i, f in enumerate(Path(tmp_div_path).iterdir(), 1))
-    print('finished parallel processing')
-    print(datetime.datetime.now().isoformat())
-    # merge all the colored lasses
-    merge_pipeline_json = merge_pipeline.format(input_file=tmp_col_path.joinpath('*').as_posix(),
-                                                srs=las_srs.replace('"', '\\"'),
-                                                output_path=output_path.as_posix())
-    pipeline = pdal.Pipeline(merge_pipeline_json)
-    pipeline.validate()
-    pipeline.execute()
     if verbose:
-        print(datetime.datetime.now().isoformat())
-        print('files merged')
-        print('process finished')
+        print(f'start parallel processing at {datetime.datetime.now()}')
+
+    Parallel(n_jobs=6)(delayed(parallel_coloring)(f, i, verbose, output_path, pdalargs) for i, f in enumerate(Path(tmp_div_path).iterdir(), 1))
+
+    if verbose:
+        print(f'finished parallel processing at {datetime.datetime.now()}')
+        print(f'colorizing in parts finished at {datetime.datetime.now()}')
 
 
 def process_files(input_path, output_path, las_srs,

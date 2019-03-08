@@ -5,3 +5,4 @@ debug/
 *.las
 *.sh
 point-cloud-colorize/*
+get_year.sql

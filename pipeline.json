@@ -1,0 +1,9 @@
+{
+  "pipeline": [
+    "/var/data/arnot/div_color/tmp_col/*.laz",
+    {
+        "type" : "filters.merge"
+    },
+   "/var/data/arnot/div_color/c_10cn2_color.laz"
+  ]
+}

@@ -11,7 +11,6 @@ from pathlib import Path
 import shutil
 import pdal
 import datetime
-from joblib import Parallel, delayed
 
 
 PDAL_PIPELINE = """{{
@@ -87,30 +86,47 @@ def run_pdal(input_path, output_path, las_srs, wms_url,
     pipeline.validate()
     pipeline.execute()
 
-def parallel_coloring(f, i, verbose, tmp_col_path, pdalargs, tmp_col = 'tmp_col_{}.laz'):
-    tmp_col = Path(tmp_col_path.joinpath(tmp_col.format(i)))
-    run_pdal(Path(f), tmp_col,
-             pdalargs['las_srs'],pdalargs['wms_url'],
-             pdalargs['wms_layer'], pdalargs['wms_srs'],
-             pdalargs['wms_version'] , pdalargs['wms_format'],
-             pdalargs['wms_pixel_size'],pdalargs['wms_max_image_size'])
 
-    if verbose:
-        print(datetime.datetime.now().isoformat())
-        print(f'colored {i} parts of the las')
-
-def process_files_parallel(input, output, las_srs,
+def process_divided_files(input, output, las_srs,
                           wms_url, wms_layer, wms_srs,
                           wms_version, wms_format,
                           wms_pixel_size, wms_max_image_size,
                           verbose):
     """
-    :param input_path:
-    :param output_path:
-    :param las_srs:
-    :param verbose:
-    :return:
+    Runs 3 pipelines,
+    dividing the pc in 16 smaller pcs,
+    loops over them to color each one seperately,
+    merges them together.
+
+    Parameters
+    ----------
+    input_path : str
+        The path to the input LAS/LAZ file or directory containing LAS/LAZ
+        files.
+    output_path : str
+        The path to the output LAS/LAZ file or directory.
+    las_srs : str
+        The spatial reference system of the LAS data.
+    wms_url : str
+        The url of the WMS service to use.
+    wms_layer : str
+        The layer of the WMS service to use.
+    wms_srs : str
+        The spatial reference system of the WMS data to request.
+    wms_version : str
+        The image format of the WMS data to request.
+    wms_format : str
+        The version number of the WMS service.
+    wms_pixel_size : float
+        The approximate desired pixel size of the requested image.
+    wms_max_image_size : int
+        The maximum size (in pixels) of the largest side of the requested
+        image.
+    verbose : bool
+        Set verbose.
     """
+
+    # todo: make it handle directories
     print('colorizing parts')
     print(datetime.datetime.now().isoformat())
     output_path = Path(output)
@@ -131,7 +147,7 @@ def process_files_parallel(input, output, las_srs,
                             }},
                             {{
                               "type": "filters.divider",
-                              "count": "6"
+                              "count": "16"
                             }},
                             {{
                               "type": "writers.las",
@@ -139,7 +155,6 @@ def process_files_parallel(input, output, las_srs,
                               "filename": "{output_path}/tmp_#.laz"
                             }}
                           ]}}"""
-
 
     merge_pipeline = """{{
                         "pipeline":[
@@ -156,46 +171,89 @@ def process_files_parallel(input, output, las_srs,
                           "filename":"{output_path}"
                         }}
                         ]}}"""
+    if input_path.is_dir() and output_path.is_dir():
+        for in_file in input_path.iterdir():
+            if in_file.suffix == '.las' or in_file.suffix == '.laz':
+                # create pipeline for dividing the las
+                div_pipeline_json = divide_pipeline.format(input_file=in_file.as_posix(),
+                                                           srs=las_srs,
+                                                           output_path=tmp_div_path.as_posix())
 
+                pipeline = pdal.Pipeline(div_pipeline_json)
+                pipeline.validate()
+                pipeline.execute()
+                if verbose:
+                    print('las is divided')
+                    print(datetime.datetime.now().isoformat())
 
-    # create pipeline for dividing the las
-    div_pipeline_json = divide_pipeline.format(input_file=input_path.as_posix(),
-                                               srs=las_srs,
-                                               output_path=tmp_div_path.as_posix())
+                # for each of the created las-parts
+                for i, f in enumerate(Path(tmp_div_path).iterdir(), 1):
 
-    pipeline = pdal.Pipeline(div_pipeline_json)
-    pipeline.validate()
-    pipeline.execute()
-    if verbose:
-        print('las is divided')
-        print(datetime.datetime.now().isoformat())
+                    # color the las just as the normal las would be colored
+                    tmp_col = Path(tmp_col_path.joinpath(f'tmp_col_{i}.laz'))
 
-    pdalargs = {'wms_url': wms_url,
-                'wms_layer': wms_layer,
-                'wms_srs': wms_srs,
-                'wms_version': wms_version,
-                'wms_format': wms_format,
-                'wms_pixel_size': wms_pixel_size,
-                'wms_max_image_size': wms_max_image_size,
-                'las_srs': las_srs}
+                    run_pdal(Path(f), tmp_col,
+                             las_srs, wms_url, wms_layer, wms_srs,
+                             wms_version, wms_format, wms_pixel_size,
+                             wms_max_image_size)
+                    if verbose:
+                        print(datetime.datetime.now().isoformat())
+                        print(f'colored {i} parts of the las')
+                # merge all the colored lasses
+                merge_pipeline_json = merge_pipeline.format(input_file=tmp_col_path.joinpath('*').as_posix(),
+                                                            srs=las_srs.replace('"', '\\"'),
+                                                            output_path=output_path.as_posix())
+                pipeline = pdal.Pipeline(merge_pipeline_json)
+                pipeline.validate()
+                pipeline.execute()
+                if verbose:
+                    print(datetime.datetime.now().isoformat())
+                    print('files merged')
+                    print('process finished')
 
-    # for each of the created las-parts
-    print('start parallel processing')
-    print(datetime.datetime.now().isoformat())
-    Parallel(n_jobs=1)(delayed(parallel_coloring)(f, i, verbose, tmp_col_path, pdalargs) for i, f in enumerate(Path(tmp_div_path).iterdir(), 1))
-    print('finished parallel processing')
-    print(datetime.datetime.now().isoformat())
-    # merge all the colored lasses
-    merge_pipeline_json = merge_pipeline.format(input_file=tmp_col_path.joinpath('*').as_posix(),
-                                                srs=las_srs.replace('"', '\\"'),
-                                                output_path=output_path.as_posix())
-    pipeline = pdal.Pipeline(merge_pipeline_json)
-    pipeline.validate()
-    pipeline.execute()
-    if verbose:
-        print(datetime.datetime.now().isoformat())
-        print('files merged')
-        print('process finished')
+            else:
+                print(f'{in_file} is not a las or a laz file')
+    elif not output_path.is_dir() and not input_path.is_dir():
+        # create pipeline for dividing the las
+        div_pipeline_json = divide_pipeline.format(input_file=input_path.as_posix(),
+                                                   srs=las_srs,
+                                                   output_path=tmp_div_path.as_posix())
+
+        pipeline = pdal.Pipeline(div_pipeline_json)
+        pipeline.validate()
+        pipeline.execute()
+        if verbose:
+            print('las is divided')
+            print(datetime.datetime.now().isoformat())
+
+        # for each of the created las-parts
+        for i, f in enumerate(Path(tmp_div_path).iterdir(), 1):
+
+            # color the las just as the normal las would be colored
+            tmp_col = Path(tmp_col_path.joinpath(f'tmp_col_{i}.laz'))
+
+            run_pdal(Path(f), tmp_col,
+                     las_srs, wms_url, wms_layer, wms_srs,
+                     wms_version, wms_format, wms_pixel_size,
+                     wms_max_image_size)
+            if verbose:
+                print(datetime.datetime.now().isoformat())
+                print(f'colored {i} parts of the las')
+        # merge all the colored lasses
+        merge_pipeline_json = merge_pipeline.format(input_file=tmp_col_path.joinpath('*').as_posix(),
+                                                    srs=las_srs.replace('"', '\\"'),
+                                                    output_path=output_path.as_posix())
+        pipeline = pdal.Pipeline(merge_pipeline_json)
+        pipeline.validate()
+        pipeline.execute()
+        if verbose:
+            print(datetime.datetime.now().isoformat())
+            print('files merged')
+            print('process finished')
+    else:
+        print('input and output are not both folders or both files.')
+
+    # :todo remove temporary directories
 
 
 def process_files(input_path, output_path, las_srs,
@@ -355,7 +413,7 @@ def main():
     """
     args = argument_parser()
     if args.divide:
-        process_files_parallel(args.input, args.output, args.las_srs,
+        process_divided_files(args.input, args.output, args.las_srs,
                   args.wms_url, args.wms_layer, args.wms_srs,
                   args.wms_version, args.wms_format,
                   args.wms_pixel_size, args.wms_max_image_size,

@@ -194,8 +194,8 @@ def las_colorize(ins, outs):
 
     rgb = img[y_img, x_img] * 255
 
-    outs['Red'] = np.array(rgb[:, 0], dtype=np.uint16) >>8
-    outs['Green'] = np.array(rgb[:, 1], dtype=np.uint16) >> 8
-    outs['Blue'] = np.array(rgb[:, 2], dtype=np.uint16) >> 8
-    outs['Intensity'] = ins['Intensity'] >> 8
+    outs['Red'] = np.array(rgb[:, 0], dtype=np.uint16)
+    outs['Green'] = np.array(rgb[:, 1], dtype=np.uint16)
+    outs['Blue'] = np.array(rgb[:, 2], dtype=np.uint16)
+
     return True

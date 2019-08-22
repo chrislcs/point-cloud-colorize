@@ -77,12 +77,15 @@ def run_pdal(input_path, output_path, las_srs, wms_url,
                 'las_srs': las_srs}
 
     pdalargs_str = json.dumps(pdalargs).replace('"', '\\"')
-    path = Path(__file__)
+    # path = Path(__file__)
+    path = Path(os.getcwd())
+    print('{}'.format(path.parent.as_posix()))
     pipeline_json = PDAL_PIPELINE.format(input_file=input_path.as_posix(),
                                          output_file=output_path.as_posix(),
                                          srs=las_srs,
                                          pdalargs=pdalargs_str,
-                                         directory=path.parent.as_posix())
+                                         # directory=path.parent.as_posix())
+                                         directory=path.as_posix())
     pipeline = pdal.Pipeline(pipeline_json)
     pipeline.validate()
     pipeline.execute()

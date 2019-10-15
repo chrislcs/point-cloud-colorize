@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from point_cloud_colorize.las_colorize import process_files_parallel, process_files
+from point_cloud_colorize.las_colorize import process_files, process_files_parallel
 
 
 class TestColorizePointcloud(unittest.TestCase):

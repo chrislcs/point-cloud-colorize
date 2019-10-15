@@ -3,11 +3,10 @@ import unittest
 
 from point_cloud_colorize.las_colorize import process_files, process_files_parallel
 
-
 class TestColorizePointcloud(unittest.TestCase):
     def test_unparrallel_processing(self) -> None:
         with self.subTest('It fails if the colorizing fails'):
-            input_laz = 'test.laz'
+            input_laz = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test.laz')
             output_laz = 'test_out.laz'
 
             process_files(input_path=input_laz,
@@ -24,7 +23,8 @@ class TestColorizePointcloud(unittest.TestCase):
 
     def test_parrallel_processing(self) -> None:
         with self.subTest('It fails if the colorizing fails'):
-            input_laz = 'test.laz'
+
+            input_laz = os.path.join(os.path.dirname(os.path.abspath(__file__)),'test.laz')
             output_laz = 'test_out_dir'
 
             process_files_parallel(input=input_laz,
@@ -39,5 +39,4 @@ class TestColorizePointcloud(unittest.TestCase):
                                    wms_max_image_size=1000,
                                    verbose=False)
 
-if __name__ == '__main__':
-    unittest.main()
+

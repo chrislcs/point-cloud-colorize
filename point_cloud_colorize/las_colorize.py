@@ -2,7 +2,7 @@
 """
 Python3
 
-@author: Chris Lucas
+@author: Chris Lucas, Arno Timmer
 """
 
 import argparse
@@ -77,14 +77,13 @@ def run_pdal(input_path, output_path, las_srs, wms_url,
                 'las_srs': las_srs}
 
     pdalargs_str = json.dumps(pdalargs).replace('"', '\\"')
-    # path = Path(__file__)
+
     path = Path(os.getcwd())
-    print('{}'.format(path.parent.as_posix()))
+
     pipeline_json = PDAL_PIPELINE.format(input_file=input_path.as_posix(),
                                          output_file=output_path.as_posix(),
                                          srs=las_srs,
                                          pdalargs=pdalargs_str,
-                                         # directory=path.parent.as_posix())
                                          directory=path.as_posix())
     pipeline = pdal.Pipeline(pipeline_json)
     pipeline.validate()
@@ -123,6 +122,8 @@ def process_files_parallel(input, output, las_srs,
     tmp_div_path = Path(output_path.parent.joinpath('tmp_div'))
 
     if tmp_div_path.exists():
+		if verbose:
+			print('Temporary path exists, deleting.')
         shutil.rmtree(tmp_div_path)
     tmp_div_path.mkdir(parents=True, exist_ok=True)
 
@@ -147,10 +148,10 @@ def process_files_parallel(input, output, las_srs,
     div_pipeline_json = divide_pipeline.format(input_file=input_path.as_posix(),
                                                srs=las_srs,
                                                output_path=tmp_div_path.as_posix())
-
     pipeline = pdal.Pipeline(div_pipeline_json)
     pipeline.validate()
     pipeline.execute()
+	
     if verbose:
         print(f'las is divided at {datetime.datetime.now()}')
 
@@ -170,7 +171,6 @@ def process_files_parallel(input, output, las_srs,
     Parallel(n_jobs=6)(delayed(parallel_coloring)(f, i, verbose, output_path, pdalargs) for i, f in enumerate(Path(tmp_div_path).iterdir(), 1))
 
     if verbose:
-        print(f'finished parallel processing at {datetime.datetime.now()}')
         print(f'colorizing in parts finished at {datetime.datetime.now()}')
 
 
@@ -180,7 +180,6 @@ def process_files(input_path, output_path, las_srs,
                   wms_max_image_size, verbose=False):
     """
     Run the pdal pipeline for the input files.
-
     Parameters
     ----------
     input_path : str

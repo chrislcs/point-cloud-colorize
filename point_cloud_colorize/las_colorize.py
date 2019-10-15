@@ -12,7 +12,7 @@ import shutil
 import pdal
 import datetime
 from joblib import Parallel, delayed
-
+import os
 
 PDAL_PIPELINE = """{{
   "pipeline":[
@@ -89,22 +89,24 @@ def run_pdal(input_path, output_path, las_srs, wms_url,
     pipeline.validate()
     pipeline.execute()
 
-def parallel_coloring(f, i, verbose, tmp_col_path, pdalargs, tmp_col = 'tmp_col_{}.laz'):
+
+def parallel_coloring(f, i, verbose, tmp_col_path, pdalargs, tmp_col='tmp_col_{}.laz'):
     tmp_col = Path(tmp_col_path.joinpath(tmp_col.format(i)))
     run_pdal(Path(f), tmp_col,
-             pdalargs['las_srs'],pdalargs['wms_url'],
+             pdalargs['las_srs'], pdalargs['wms_url'],
              pdalargs['wms_layer'], pdalargs['wms_srs'],
-             pdalargs['wms_version'] , pdalargs['wms_format'],
-             pdalargs['wms_pixel_size'],pdalargs['wms_max_image_size'])
+             pdalargs['wms_version'], pdalargs['wms_format'],
+             pdalargs['wms_pixel_size'], pdalargs['wms_max_image_size'])
 
     if verbose:
         print(f'colored {i} parts of the las at {datetime.datetime.now()}')
 
+
 def process_files_parallel(input, output, las_srs,
-                          wms_url, wms_layer, wms_srs,
-                          wms_version, wms_format,
-                          wms_pixel_size, wms_max_image_size,
-                          verbose):
+                           wms_url, wms_layer, wms_srs,
+                           wms_version, wms_format,
+                           wms_pixel_size, wms_max_image_size,
+                           verbose):
     """
     :param input_path:
     :param output_path:
@@ -122,8 +124,8 @@ def process_files_parallel(input, output, las_srs,
     tmp_div_path = Path(output_path.parent.joinpath('tmp_div'))
 
     if tmp_div_path.exists():
-		if verbose:
-			print('Temporary path exists, deleting.')
+        if verbose:
+            print('Temporary path exists, deleting.')
         shutil.rmtree(tmp_div_path)
     tmp_div_path.mkdir(parents=True, exist_ok=True)
 
@@ -151,7 +153,7 @@ def process_files_parallel(input, output, las_srs,
     pipeline = pdal.Pipeline(div_pipeline_json)
     pipeline.validate()
     pipeline.execute()
-	
+
     if verbose:
         print(f'las is divided at {datetime.datetime.now()}')
 
@@ -168,7 +170,8 @@ def process_files_parallel(input, output, las_srs,
     if verbose:
         print(f'start parallel processing at {datetime.datetime.now()}')
 
-    Parallel(n_jobs=6)(delayed(parallel_coloring)(f, i, verbose, output_path, pdalargs) for i, f in enumerate(Path(tmp_div_path).iterdir(), 1))
+    Parallel(n_jobs=6)(delayed(parallel_coloring)(f, i, verbose, output_path, pdalargs) for i, f in
+                       enumerate(Path(tmp_div_path).iterdir(), 1))
 
     if verbose:
         print(f'colorizing in parts finished at {datetime.datetime.now()}')
@@ -313,7 +316,7 @@ def argument_parser():
                         default=1000)
     parser.add_argument('-d', '--divide',
                         default=5,
-                        action = "store_true",
+                        action="store_true",
                         help='Divide the point cloud in a given number of '
                              'smaller areas which are colored seperately')
     parser.add_argument('-V', '--verbose',
@@ -331,16 +334,16 @@ def main():
     args = argument_parser()
     if args.divide:
         process_files_parallel(args.input, args.output, args.las_srs,
-                  args.wms_url, args.wms_layer, args.wms_srs,
-                  args.wms_version, args.wms_format,
-                  args.wms_pixel_size, args.wms_max_image_size,
-                  args.verbose)
+                               args.wms_url, args.wms_layer, args.wms_srs,
+                               args.wms_version, args.wms_format,
+                               args.wms_pixel_size, args.wms_max_image_size,
+                               args.verbose)
     else:
         process_files(args.input, args.output, args.las_srs,
-                  args.wms_url, args.wms_layer, args.wms_srs,
-                  args.wms_version, args.wms_format,
-                  args.wms_pixel_size, args.wms_max_image_size,
-                  args.verbose)
+                      args.wms_url, args.wms_layer, args.wms_srs,
+                      args.wms_version, args.wms_format,
+                      args.wms_pixel_size, args.wms_max_image_size,
+                      args.verbose)
 
 
 if __name__ == '__main__':

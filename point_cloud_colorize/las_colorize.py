@@ -125,7 +125,7 @@ def process_files(input_path, output_path, las_srs,
 
     if input_path.is_dir():
         for f in input_path.iterdir():
-            if f.suffix == '.las' or f.suffix == '.laz':
+            if f.suffix.lower() == '.las' or f.suffix.lower() == '.laz':
 
                 if output_path.is_dir():
                     out = output_path / '{}_color{}'.format(f.stem, f.suffix)
@@ -144,7 +144,8 @@ def process_files(input_path, output_path, las_srs,
         if verbose:
             print('Colorizing {} ..'.format(input_path))
 
-        if output_path.suffix == '.las' or output_path.suffix == '.laz':
+        if (output_path.suffix.lower() == '.las' or
+                output_path.suffix.lower() == '.laz'):
             if verbose:
                 print('Saving at {}.'.format(output_path))
 
